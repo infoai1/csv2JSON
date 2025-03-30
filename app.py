@@ -5,7 +5,7 @@ import re
 import ast
 import html
 
-st.title("📜 Enriched Verse JSON Generator (Minimal & RAG-Ready)")
+st.title("📜 Enriched Verse JSON Generator (Clean Minimal Version)")
 
 EXPECTED_EMBEDDING_SIZE = 768
 
@@ -78,15 +78,12 @@ if enriched_file and embedding_file:
                 "embedding": fix_embedding(safe_parse_list(chunk.get('Embedding')))
             })
 
-        # Optional: Keep tags and related groups if helpful
         tags = list(set(safe_parse_list(row.get('themes')) + safe_parse_list(row.get('wisdom_points'))))
-        related_verse_groups = safe_parse_list(row.get('related_verse_groups')) if 'related_verse_groups' in row else []
 
         result.append({
             "verse_group": verse_group,
             "chapter": chapter,
             "tags": tags,
-            "related_verse_groups": related_verse_groups,
             "verses": verses,
             "english_commentary": html.unescape(str(row.get('English Commentary')).strip()),
             "macro_analysis": {
@@ -101,9 +98,9 @@ if enriched_file and embedding_file:
         })
 
     json_output = json.dumps(result, indent=2)
-    st.success("✅ Clean JSON structure created!")
+    st.success("✅ Final JSON (cleaned) structure created!")
 
-    st.download_button("📥 Download Final JSON", json_output, file_name="nested_output_minimal.json", mime="application/json")
+    st.download_button("📥 Download JSON", json_output, file_name="nested_output_clean_minimal.json", mime="application/json")
 
     with st.expander("🔍 Preview JSON Output"):
         st.code(json_output, language="json")
