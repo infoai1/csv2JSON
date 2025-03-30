@@ -5,7 +5,7 @@ import re
 import ast
 import html
 
-st.title("📜 Enriched Verse JSON Generator (RAG-Optimized)")
+st.title("📜 Enriched Verse JSON Generator (Minimal & RAG-Ready)")
 
 EXPECTED_EMBEDDING_SIZE = 768
 
@@ -78,25 +78,17 @@ if enriched_file and embedding_file:
                 "embedding": fix_embedding(safe_parse_list(chunk.get('Embedding')))
             })
 
-        commentary = html.unescape(str(row.get('English Commentary')).strip())
-        summary = " ".join(commentary.split()[:20]) + "..."
-
-        # Optional advanced metadata
+        # Optional: Keep tags and related groups if helpful
         tags = list(set(safe_parse_list(row.get('themes')) + safe_parse_list(row.get('wisdom_points'))))
-        revelation_period = row.get('revelation_period', '').strip() if 'revelation_period' in row else None
-        location = row.get('location', '').strip() if 'location' in row else None
         related_verse_groups = safe_parse_list(row.get('related_verse_groups')) if 'related_verse_groups' in row else []
 
         result.append({
             "verse_group": verse_group,
-            "verse_group_summary": summary,
             "chapter": chapter,
-            "revelation_period": revelation_period,
-            "location": location,
             "tags": tags,
             "related_verse_groups": related_verse_groups,
             "verses": verses,
-            "english_commentary": commentary,
+            "english_commentary": html.unescape(str(row.get('English Commentary')).strip()),
             "macro_analysis": {
                 "themes": safe_parse_list(row.get('themes')),
                 "wisdom_points": safe_parse_list(row.get('wisdom_points')),
@@ -109,9 +101,9 @@ if enriched_file and embedding_file:
         })
 
     json_output = json.dumps(result, indent=2)
-    st.success("✅ RAG-Optimized JSON structure created!")
+    st.success("✅ Clean JSON structure created!")
 
-    st.download_button("📥 Download Final JSON", json_output, file_name="nested_output_rag_ready.json", mime="application/json")
+    st.download_button("📥 Download Final JSON", json_output, file_name="nested_output_minimal.json", mime="application/json")
 
     with st.expander("🔍 Preview JSON Output"):
         st.code(json_output, language="json")
