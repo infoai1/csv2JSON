@@ -2,8 +2,10 @@ import streamlit as st
 import pandas as pd
 import json
 import re
+import ast
+import html
 
-st.title("📜 Verse Group → Structured JSON Generator")
+st.title("📜 Verse Group → Structured JSON Generator (Cleaned Lists & Text)")
 
 # File upload
 enriched_file = st.file_uploader("Upload enriched_combined.csv", type="csv")
@@ -28,18 +30,16 @@ if enriched_file and embedding_file:
             verses.append({
                 "verse_number": verse_number,
                 "verse_id": f"{chapter}:{verse_number}",
-                "text": verse_text
+                "text": html.unescape(verse_text)
             })
         return verses
 
-    def safe_json_parse(cell, fallback_type=list):
+    def safe_parse_list(cell):
         try:
-            val = json.loads(cell) if pd.notna(cell) else fallback_type()
-            if not isinstance(val, fallback_type):
-                return [val] if fallback_type == list else fallback_type()
-            return val
+            value = ast.literal_eval(cell) if pd.notna(cell) else []
+            return value if isinstance(value, list) else [str(value)]
         except Exception:
-            return [cell] if fallback_type == list and pd.notna(cell) else fallback_type()
+            return [str(cell)] if pd.notna(cell) else []
 
     result = []
 
@@ -55,35 +55,35 @@ if enriched_file and embedding_file:
         for _, chunk in matching_chunks.iterrows():
             chunks.append({
                 "section_number": chunk.get('SectionNumber'),
-                "theme_text": chunk.get('ThemeText'),
+                "theme_text": html.unescape(str(chunk.get('ThemeText')).strip()),
                 "theme_title": chunk.get('ThemeTitle'),
                 "theme_summary": chunk.get('ThemeSummary'),
-                "contextual_question": safe_json_parse(chunk.get('ContextualQuestion')),
+                "contextual_question": safe_parse_list(chunk.get('ContextualQuestion')),
                 "keywords": chunk.get('Keywords'),
                 "outline": chunk.get('Outline'),
-                "embedding": safe_json_parse(chunk.get('Embedding'), fallback_type=list)
+                "embedding": safe_parse_list(chunk.get('Embedding'))
             })
 
         result.append({
             "verse_group": verse_group,
             "chapter": chapter,
             "verses": verses,
-            "english_commentary": row.get('English Commentary'),
+            "english_commentary": html.unescape(str(row.get('English Commentary')).strip()),
             "macro_analysis": {
-                "themes": safe_json_parse(row.get('themes')),
-                "wisdom_points": safe_json_parse(row.get('wisdom_points')),
-                "real_life_reflections": safe_json_parse(row.get('real_life_reflections')),
-                "revelation_context": safe_json_parse(row.get('revelation_context')),
-                "outline_of_commentary": safe_json_parse(row.get('outline_of_commentary')),
-                "contextual_questions": safe_json_parse(row.get('contextual_questions')),
+                "themes": safe_parse_list(row.get('themes')),
+                "wisdom_points": safe_parse_list(row.get('wisdom_points')),
+                "real_life_reflections": safe_parse_list(row.get('real_life_reflections')),
+                "revelation_context": safe_parse_list(row.get('revelation_context')),
+                "outline_of_commentary": safe_parse_list(row.get('outline_of_commentary')),
+                "contextual_questions": safe_parse_list(row.get('contextual_questions')),
             },
             "chunks": chunks
         })
 
     json_output = json.dumps(result, indent=2)
-    st.success("✅ JSON structure created!")
+    st.success("✅ Cleaned JSON structure created!")
 
-    st.download_button("📥 Download JSON", json_output, file_name="nested_output.json", mime="application/json")
+    st.download_button("📥 Download Cleaned JSON", json_output, file_name="nested_output_cleaned.json", mime="application/json")
 
-    with st.expander("🔍 Preview JSON Output"):
+    with st.expander("🔍 Preview Cleaned JSON Output"):
         st.code(json_output, language="json")
