@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import re
 
-st.title("Verse Group → Nested JSON Converter")
+st.title("📜 Verse Group → Structured JSON Generator")
 
 # File upload
 enriched_file = st.file_uploader("Upload enriched_combined.csv", type="csv")
@@ -41,40 +41,35 @@ if enriched_file and embedding_file:
 
         # Match chunks
         matching_chunks = df2[df2['Commentary Group'] == verse_group]
-
         chunks = []
+
         for _, chunk in matching_chunks.iterrows():
+            # Safely handle possibly malformed JSON strings
+            def safe_json_parse(cell, fallback_type=list):
+                try:
+                    val = json.loads(cell) if pd.notna(cell) else fallback_type()
+                    if not isinstance(val, fallback_type):
+                        return [val] if fallback_type == list else fallback_type()
+                    return val
+                except Exception:
+                    return [cell] if fallback_type == list and pd.notna(cell) else fallback_type()
+
             chunks.append({
-                "section_number": chunk['SectionNumber'],
-                "theme_text": chunk['ThemeText'],
-                "theme_title": chunk.get('ThemeTitle', None),
-                "theme_summary": chunk.get('ThemeSummary', None),
-                "contextual_question": json.loads(chunk['ContextualQuestion']) if pd.notna(chunk['ContextualQuestion']) else [],
-                "keywords": chunk.get('Keywords', None),
-                "outline": chunk.get('Outline', None),
-                "embedding": json.loads(chunk['Embedding']) if pd.notna(chunk['Embedding']) else []
+                "section_number": chunk.get('SectionNumber'),
+                "theme_text": chunk.get('ThemeText'),
+                "theme_title": chunk.get('ThemeTitle'),
+                "theme_summary": chunk.get('ThemeSummary'),
+                "contextual_question": safe_json_parse(chunk.get('ContextualQuestion')),
+                "keywords": chunk.get('Keywords'),
+                "outline": chunk.get('Outline'),
+                "embedding": safe_json_parse(chunk.get('Embedding'), fallback_type=list)
             })
 
         result.append({
             "verse_group": verse_group,
             "chapter": chapter,
             "verses": verses,
-            "english_commentary": row['English Commentary'],
+            "english_commentary": row.get('English Commentary'),
             "macro_analysis": {
-                "themes": json.loads(row['themes']),
-                "wisdom_points": json.loads(row['wisdom_points']),
-                "real_life_reflections": json.loads(row['real_life_reflections']),
-                "revelation_context": json.loads(row['revelation_context']),
-                "outline_of_commentary": json.loads(row['outline_of_commentary']),
-                "contextual_questions": json.loads(row['contextual_questions'])
-            },
-            "chunks": chunks
-        })
-
-    # Display and download
-    st.success("✅ JSON successfully generated!")
-    json_output = json.dumps(result, indent=2)
-    st.download_button("📥 Download JSON", json_output, file_name="nested_verse_data.json", mime="application/json")
-
-    with st.expander("🔍 Preview JSON"):
-        st.code(json_output, language="json")
+                "themes": safe_json_parse(row.get('themes')),
+                "wisdom_points": safe_json_parse(row_
