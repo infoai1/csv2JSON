@@ -32,6 +32,15 @@ if enriched_file and embedding_file:
             })
         return verses
 
+    def safe_json_parse(cell, fallback_type=list):
+        try:
+            val = json.loads(cell) if pd.notna(cell) else fallback_type()
+            if not isinstance(val, fallback_type):
+                return [val] if fallback_type == list else fallback_type()
+            return val
+        except Exception:
+            return [cell] if fallback_type == list and pd.notna(cell) else fallback_type()
+
     result = []
 
     for _, row in df1.iterrows():
@@ -44,16 +53,6 @@ if enriched_file and embedding_file:
         chunks = []
 
         for _, chunk in matching_chunks.iterrows():
-            # Safely handle possibly malformed JSON strings
-            def safe_json_parse(cell, fallback_type=list):
-                try:
-                    val = json.loads(cell) if pd.notna(cell) else fallback_type()
-                    if not isinstance(val, fallback_type):
-                        return [val] if fallback_type == list else fallback_type()
-                    return val
-                except Exception:
-                    return [cell] if fallback_type == list and pd.notna(cell) else fallback_type()
-
             chunks.append({
                 "section_number": chunk.get('SectionNumber'),
                 "theme_text": chunk.get('ThemeText'),
@@ -72,4 +71,19 @@ if enriched_file and embedding_file:
             "english_commentary": row.get('English Commentary'),
             "macro_analysis": {
                 "themes": safe_json_parse(row.get('themes')),
-                "wisdom_points": safe_json_parse(row_
+                "wisdom_points": safe_json_parse(row.get('wisdom_points')),
+                "real_life_reflections": safe_json_parse(row.get('real_life_reflections')),
+                "revelation_context": safe_json_parse(row.get('revelation_context')),
+                "outline_of_commentary": safe_json_parse(row.get('outline_of_commentary')),
+                "contextual_questions": safe_json_parse(row.get('contextual_questions')),
+            },
+            "chunks": chunks
+        })
+
+    json_output = json.dumps(result, indent=2)
+    st.success("✅ JSON structure created!")
+
+    st.download_button("📥 Download JSON", json_output, file_name="nested_output.json", mime="application/json")
+
+    with st.expander("🔍 Preview JSON Output"):
+        st.code(json_output, language="json")
